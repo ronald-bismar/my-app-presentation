@@ -1,102 +1,239 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, Image, Platform } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
+import React, { useRef, useState } from "react";
+import {
+  Animated,
+  FlatList,
+  Image,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 
-export default function TabTwoScreen() {
+// Define la estructura de una tarea
+interface Task {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export default function TaskListScreen() {
+  // Estado para almacenar la lista de tareas
+  const [tasks, setTasks] = useState<Task[]>([]);
+  // Estado para el texto de entrada de nueva tarea
+  const [inputText, setInputText] = useState("");
+  // Estado para controlar qué tarea se está editando
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Valor animado para el efecto de fade-in
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Función para añadir una nueva tarea
+  const addTask = () => {
+    if (inputText) {
+      const newTask = {
+        id: Date.now().toString(),
+        text: inputText,
+        completed: false,
+      };
+      setTasks([newTask, ...tasks]);
+      setInputText("");
+      fadeIn();
+    }
+  };
+
+  // Función para actualizar una tarea existente
+  const updateTask = (id: string, newText: string) => {
+    setTasks(
+      tasks.map((task) => (task.id === id ? { ...task, text: newText } : task))
+    );
+    setEditingId(null);
+  };
+
+  // Función para marcar una tarea como completada o no completada
+  const toggleTask = (id: string) => {
+    setTasks(
+      tasks.map((task) =>
+        task.id === id ? { ...task, completed: !task.completed } : task
+      )
+    );
+  };
+
+  // Función para eliminar una tarea
+  const deleteTask = (id: string) => {
+    setTasks(tasks.filter((task) => task.id !== id));
+  };
+
+  // Función para animar la aparición de una nueva tarea
+  const fadeIn = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Componente para renderizar cada tarea individual
+  const renderItem = ({ item }: { item: Task }) => (
+    <Animated.View style={[styles.item, { opacity: fadeAnim }]}>
+      {/* Checkbox para marcar la tarea como completada */}
+      <TouchableOpacity
+        style={styles.checkbox}
+        onPress={() => toggleTask(item.id)}
+      >
+        <Ionicons
+          name={item.completed ? "checkmark-circle" : "ellipse-outline"}
+          size={24}
+          color={item.completed ? "#4a69bd" : "#95a5a6"}
+        />
+      </TouchableOpacity>
+      {/* Campo de texto editable o texto normal dependiendo del estado de edición */}
+      {editingId === item.id ? (
+        <TextInput
+          style={[styles.taskText, item.completed && styles.completedText]}
+          value={item.text}
+          onChangeText={(text) => updateTask(item.id, text)}
+          onBlur={() => setEditingId(null)}
+          autoFocus
+        />
+      ) : (
+        <ThemedText
+          style={[styles.taskText, item.completed && styles.completedText]}
+        >
+          {item.text}
+        </ThemedText>
+      )}
+      {/* Botones para editar y eliminar la tarea */}
+      <View style={styles.itemButtons}>
+        <TouchableOpacity onPress={() => setEditingId(item.id)}>
+          <Ionicons name="pencil" size={24} color="#4a69bd" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => deleteTask(item.id)}>
+          <Ionicons name="trash" size={24} color="#eb4d4b" />
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
+  );
+
+  // Renderizado principal del componente
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={<Ionicons size={310} name="code-slash" style={styles.headerImage} />}>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText> library
-          to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <ThemedView style={styles.container}>
+      <ThemedText style={styles.title}>Lista de Tareas</ThemedText>
+      {/* Contenedor para el input de nueva tarea */}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder="Añadir nueva tarea"
+          placeholderTextColor="#95a5a6"
+        />
+        <TouchableOpacity style={styles.addButton} onPress={addTask}>
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
+      {/* Lista de tareas */}
+      <FlatList
+        data={tasks}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        style={styles.list}
+      />
+      {/* Logo de React */}
+      <Image
+        source={require("@/assets/images/partial-react-logo.png")}
+        style={styles.logo}
+      />
+    </ThemedView>
   );
 }
 
+// Estilos para los componentes
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#f5f5f5", // Color de fondo claro (gris muy suave)
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  title: {
+    fontSize: 26,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: "#30336b",
+    textAlign: "center",
+    marginTop: 50,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    marginBottom: 20,
+  },
+  input: {
+    flex: 1,
+    height: 50,
+    borderColor: "#2c3e50",
+    borderWidth: 1,
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    backgroundColor: "#fff",
+    fontSize: 16,
+    color: "#2c3e50",
+  },
+  addButton: {
+    backgroundColor: "#4a69bd",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 10,
+    borderColor: "#2c3e50",
+    borderWidth: 1,
+  },
+  list: {
+    flex: 1,
+  },
+  item: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    borderColor: "#2c3e50",
+    borderWidth: 1,
+  },
+  checkbox: {
+    marginRight: 10,
+  },
+  taskText: {
+    flex: 1,
+    fontSize: 16,
+    color: "#2c3e50",
+  },
+  completedText: {
+    textDecorationLine: "line-through",
+    color: "#7f8c8d",
+  },
+  itemButtons: {
+    flexDirection: "row",
+    width: 60,
+    justifyContent: "space-between",
+  },
+  logo: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    height: 140,
+    width: "60%",
+    resizeMode: "contain",
+    opacity: 0.7,
   },
 });
